@@ -16,6 +16,7 @@ typedef struct sockaddr sockaddr;
 typedef struct sockaddr_in sockaddr_in;
 typedef struct hostent hostent;
 typedef struct servent servent;
+
 typedef struct {
   int sockets[MAX_CLIENTS];
   int count;
@@ -25,7 +26,13 @@ typedef struct  {
   char username[256];
 } SOCKET;
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+ const char LISTE_CLIENTS[256] = "liste_client",
+        MSG_TOUS[256] = "msg_tous",
+        MSG_GROUPE[256] = "msg_groupe",
+        MSG_SEUL[256] = "msg_seul",
+        CREER_GRP[256] = "creer_grp",
+        REJOINDRE_GRP[256] = "rejoindre_grp",
+        QUITTER[256] = "quitter";
 
 ClientList clientList;
 
@@ -51,18 +58,19 @@ void removeClient(int socket) {
       break;
     }
   }
-  printf("[-] le client #%d s'est déconnecté", socket);
+  printf("[-] le client #%d s'est déconnecté\n", socket);
+  close(socket);
 }
 
 // Fonction pour envoyer la liste des clients à un client spécifique
 void sendClientList(int socket) {
-  char buffer[256];
+  char buffer[256] = "";
   int i, length = 0;
   for (i = 0; i < clientList.count; i++) {
       length += sprintf(buffer + length, "Client %d\n", clientList.sockets[i]);
   }
-  write(socket, buffer, strlen(buffer));
-  printf("Liste des clients envoyé au client #%d", socket);
+  write(socket, buffer, length);
+  printf("Liste des clients envoyé au client #%d\n", socket);
 }
 
 void *receptionChoix(void *currentClient_sock) {
@@ -70,31 +78,62 @@ void *receptionChoix(void *currentClient_sock) {
   SOCKET *sock = (SOCKET *)currentClient_sock;
   int socket = sock->socket; /* récupération du socket client */
   char buffer[256] = "";
+  char msg[256] = "";
   int longueur;
 
-  if ((longueur = read(socket, buffer, sizeof(buffer))) <= 0) {
-    printf("error : rien n'est lu");
-    pthread_exit(NULL);
-  }
+  while (strcmp(buffer, QUITTER) != 0) {// Redirection des requêtes
+    memset(buffer, 0, sizeof(buffer));
+    printf("le buffer : %s\n", buffer);
 
-  printf("Choix lu : %s \n", buffer);
-
-  // Redirection des requêtes
-  if (strcmp(buffer, "1") == 0) {
-      sendClientList(socket);
-  } else if (strcmp(buffer, "5") == 0) {
-      removeClient(socket);
-      close(socket);
-      free(currentClient_sock);
+    if ((longueur = read(socket, buffer, sizeof(buffer))) <= 0) {
+      printf("error : rien n'est lu");
       pthread_exit(NULL);
+    }
+
+    printf("Choix lu : %s \n", buffer);
+
+    if (strcmp(buffer, LISTE_CLIENTS) == 0) {
+        sendClientList(socket);
+    } else if (strcmp(buffer, MSG_TOUS) == 0) {
+      printf("|i| Message à tous : en construction");
+      strcpy(msg, "|i| Option encore indisponible\n");
+      write(socket, msg, strlen(msg));
+    } else if (strcmp(buffer, MSG_GROUPE) == 0) {
+      printf("|i| Message à un groupe : en construction");
+      strcpy(msg, "|i| Option encore indisponible\n");
+      write(socket, msg, strlen(msg));
+    } else if (strcmp(buffer, MSG_SEUL) == 0) {
+      printf("|i| Message à un utilisateur : en construction");
+      strcpy(msg, "|i| Option encore indisponible\n");
+      write(socket, msg, strlen(msg));
+    } else if (strcmp(buffer, CREER_GRP) == 0) {
+      printf("|i| Créer un groupe : en construction");
+      strcpy(msg, "|i| Option encore indisponible\n");
+      write(socket, msg, strlen(msg));
+    } else if (strcmp(buffer, REJOINDRE_GRP) == 0) {
+      printf("|i| Rejoindre un groupe : en construction");
+      strcpy(msg, "|i| Option encore indisponible\n");
+      write(socket, msg, strlen(msg));
+    } else {
+      printf("erreur [reception incorrecte] : choix indisponible dans le menu.\n");
+      close(socket);
+      break;
+    }
   }
+  printf("pas ok");
+  if (strcmp(buffer, QUITTER) == 0) {
+      removeClient(socket);
+  }
+  free(currentClient_sock);
+  pthread_exit(NULL);
 }
 
 // Exécution principale
 main(int argc, char **argv) {
   int longueur_adresse_courante, /* longueur d'adresse courante d'un client */
     clients_count, /* Compteur de client qui se connecte */
-    rc;  /* infos recuperees à la creation d'un thread */
+    rc,  /* infos recuperees à la creation d'un thread */
+    longueur; 
   sockaddr_in   adresse_locale,     /* structure d'adresse locale*/
     adresse_client_courant;   /* adresse client courant */
   hostent * ptr_hote;       /* les infos recuperees sur la machine hote */
@@ -147,7 +186,7 @@ main(int argc, char **argv) {
         perror("erreur [Allocation mémoire] : impossible d'allouer la mémoire pour le socket client.\n");
         close(socket_descriptor);
         exit(1);
-    }
+    } 
 
     /* adresse_client_courant sera renseignée par accept via les infos du connect */
     socklen_t longueur_adresse_courante = sizeof(adresse_client_courant);
@@ -170,7 +209,7 @@ main(int argc, char **argv) {
         exit(1);
     }
 
-    printf("> Connexion réussie avec client #%d! <\n\n", nouv_socket_descriptor->socket);
+    printf("\n> Connexion réussie avec client #%d! <\n\n", nouv_socket_descriptor->socket);
 
     //printf("test %p \n", (void *)nouv_socket_descriptor->socket);
     // Lorsqu'un client se connecte, ajouter son socket à la liste des clients
@@ -188,9 +227,9 @@ main(int argc, char **argv) {
     }
 
     pthread_detach(currentClient_thread);
-    
-    close(socket_descriptor);
+    free(clientList);
     // Ne libérez pas nouveau_socket_descriptor ici car il est utilisé par le thread détaché.
 }
+  close(socket_descriptor);
   return 0;
 }
