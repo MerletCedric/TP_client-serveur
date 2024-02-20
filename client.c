@@ -103,6 +103,7 @@ int main(int argc, char **argv) {
                     printf("\n /!\\ Veuilllez sélectionner un menu existant.\n");
             }
         } while (selection < 1 || selection > 7);
+
         if ((write(socket_descriptor, choix, strlen(choix))) < 0) {
             perror("erreur[Menu] : impossible d'envoyer un choix au serveur.");
             exit(1);
@@ -110,8 +111,9 @@ int main(int argc, char **argv) {
         
         printf("Vous avez demandez : %s\n", choix);
         printf("Réponse du serveur : \n");
-        while((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
-            write(1,buffer,longueur);
+        if((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
+            write(1, buffer, longueur);
+            //break;
         }
     } while(selection != 7);
 
