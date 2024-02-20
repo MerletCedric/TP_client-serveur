@@ -20,18 +20,17 @@ int main(int argc, char **argv) {
         longueur,       /* longueur d'un buffer utilisé */
         selection; /* Permet la sélection dans le menu */
     sockaddr_in adresse_locale;     /* adresse de socket local */
-    hostent *   ptr_host;       /* info sur une machine hote */
-    servent *   ptr_service;        /* info sur service */
+    hostent * ptr_host;       /* info sur une machine hote */
+    servent * ptr_service;        /* info sur service */
     char buffer[256];
-    char *  prog;           /* nom du programme */
-    char *  host;           /* nom de la machine distante */
-    char *  mesg;           /* message envoyé */
+    char * prog;           /* nom du programme */
+    char * host;           /* nom de la machine distante */
+    char * mesg;           /* message envoyé */
 
     prog = argv[0];
     host = argv[1];
 
-    const char 
-        LISTE_CLIENTS[256] = "liste_client",
+    const char LISTE_CLIENTS[256] = "liste_client",
         MSG_TOUS[256] = "msg_tous",
         MSG_GROUPE[256] = "msg_groupe",
         MSG_SEUL[256] = "msg_seul",
@@ -39,6 +38,7 @@ int main(int argc, char **argv) {
         REJOINDRE_GRP[256] = "rejoindre_grp",
         QUITTER[256] = "quitter";
 
+     char choix[256]; /* Choix de menu retenu par l'utilisateur */
 
     printf("nom de l'executable : %s \n", prog);
     printf("adresse du serveur  : %s \n", host);
@@ -70,77 +70,50 @@ int main(int argc, char **argv) {
 
     printf("connexion etablie avec le serveur. \n");
 
-    char choix[256];
+    printf("\nChoisissez une catégorie :\n 1- Consulter les clients connectés \n 2- Envoyer un message à tous \n 3- Envoyer un message à un groupe d'utilisateur\n");
+    printf(" 4- Envoyer un message à un utilisateur \n 5- Créer un groupe \n 6- Rejoindre un groupe \n 7- Quitter le chat \n");
 
-    printf("Choisissez une catégorie :\n 1- Consulter les clients connectés \n 2- Envoyer un message à tous \n 3- Envoyer un message à un groupe d'utilisateur \n");
-    printf("4- Envoyer un message à un utilisateur \n 5- Créer un groupe \n 6- Rejoindre un groupe \n 7- Quitter le chat \n Mon choix : ");
-    scanf("%d", selection);
-
-    do { 
-        switch(selection) {
-            case 1:
-                if ((write(socket_descriptor, LISTE_CLIENTS, strlen(LISTE_CLIENTS))) < 0) {
-                    perror("erreur[Menu] : impossible d'envoyer un choix au serveur.");
-                    exit(1);
-                }
-            case 2:
-                if ((write(socket_descriptor, MSG_TOUS, strlen(MSG_TOUS))) < 0) {
-                    perror("erreur[Menu] : impossible d'envoyer un choix au serveur.");
-                    exit(1);
-                }
-            case 3:
-                if ((write(socket_descriptor, MSG_GROUPE, strlen(MSG_GROUPE))) < 0) {
-                    perror("erreur[Menu] : impossible d'envoyer un choix au serveur.");
-                    exit(1);
-                }
-            case 4:
-                if ((write(socket_descriptor, MSG_SEUL, strlen(MSG_SEUL))) < 0) {
-                    perror("erreur[Menu] : impossible d'envoyer un choix au serveur.");
-                    exit(1);
-                }
-            case 5:
-                if ((write(socket_descriptor, CREER_GRP, strlen(CREER_GRP))) < 0) {
-                    perror("erreur[Menu] : impossible d'envoyer un choix au serveur.");
-                    exit(1);
-                }
-            case 6:
-                if ((write(socket_descriptor, REJOINDRE_GRP, strlen(REJOINDRE_GRP))) < 0) {
-                    perror("erreur[Menu] : impossible d'envoyer un choix au serveur.");
-                    exit(1);
-                }
-            case 7:
-                if ((write(socket_descriptor, QUITTER, strlen(QUITTER))) < 0) {
-                    perror("erreur[Menu] : impossible d'envoyer un choix au serveur.");
-                    exit(1);
-                }
-        }
-    } while (selection < 1 || selection > 5  );
-    
-    
-
-    fgets(choix, sizeof(choix), stdin); // Demande à l'utilisateur de saisir le message
-    choix[strcspn(choix, "\n")] = '\0'; // Supprime le caractère de nouvelle ligne ajouté par fgets
-
-    if (strcmp(choix, "1") == 0) { // Comparaison avec strcmp()
-        /* envoi du message vers le serveur */
-        
-        printf("requête envoyée. \n");
-    } else if(strcmp(choix, "5") == 0) {
-        /* envoi du message vers le serveur */
+    do {
+        do {
+            printf("\nMon choix : ");
+            scanf("%d", &selection); 
+            switch(selection) {
+                case 1:
+                    strcpy(choix, LISTE_CLIENTS);
+                    break;
+                case 2:
+                    strcpy(choix, MSG_TOUS);
+                    break;
+                case 3:
+                    strcpy(choix, MSG_GROUPE);
+                    break;
+                case 4:
+                    strcpy(choix, MSG_SEUL);
+                    break;
+                case 5:
+                    strcpy(choix, CREER_GRP);
+                    break;
+                case 6:
+                    strcpy(choix, REJOINDRE_GRP);
+                    break;
+                case 7:
+                    strcpy(choix, QUITTER);
+                    break;
+                default:
+                    printf("\n /!\\ Veuilllez sélectionner un menu existant.\n");
+            }
+        } while (selection < 1 || selection > 7);
         if ((write(socket_descriptor, choix, strlen(choix))) < 0) {
             perror("erreur[Menu] : impossible d'envoyer un choix au serveur.");
             exit(1);
         }
-    } else {
-        printf("erreur[menu] : veuillez selectionner un menu disponible");
-    }
-
-    /* lecture de la reponse en provenance du serveur */
-    sleep(3);
-    printf("Voici les clients : ");
-    while((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
-        write(1,buffer,longueur);
-    }
+        
+        printf("Vous avez demandez : %s\n", choix);
+        printf("Réponse du serveur : \n");
+        while((longueur = read(socket_descriptor, buffer, sizeof(buffer))) > 0) {
+            write(1,buffer,longueur);
+        }
+    } while(selection != 7);
 
     printf("\nfin de la reception.\n");
  
