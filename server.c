@@ -69,7 +69,7 @@ void *receptionChoix(void *currentClient_sock) {
   
   SOCKET *sock = (SOCKET *)currentClient_sock;
   int socket = sock->socket; /* récupération du socket client */
-  char buffer[2];
+  char buffer[256] = "";
   int longueur;
 
   if ((longueur = read(socket, buffer, sizeof(buffer))) <= 0) {
