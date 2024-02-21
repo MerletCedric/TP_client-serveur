@@ -78,27 +78,35 @@ void sendClientList(int socket) {
 }
 
 void *discussToAll(int socket, char *buffer) {
-  //char buffer[1024];
-  char msgToSend[1024+30];
   int longueur;
-
-  printf("socket %d\n", socket);
+  char message_receiver[1024+30];
+  char message_sender[1024+30];
 
   while ((longueur = read(socket, buffer, sizeof(buffer))) > 0) {
-    printf("Message lu : %s", buffer);
-    if (strcmp(buffer, QUITTER)) {
+    printf("Message lu : %s\n", buffer);
+    if (strcmp(buffer, QUITTER) == 0) {
       close(socket);
       pthread_exit(NULL);
-    }
-    printf("\nconversaton entamée\n");
-    buffer[longueur] = '\0';
-    printf("Message %s : renvoyé a l'émetteur\n", msgToSend);
+    } else {
+      buffer[longueur] = '\0';
+      printf("Message \" %s \" : renvoyé a l'émetteur\n", buffer);
 
-    for (int i = 0; i < 10; ++i) {
-      if (clientList.sockets[i].socket != -1 && clientList.sockets[i].socket != socket) {
-        sprintf(msgToSend, "%s : %s\n", clientList.sockets[i].username, buffer);
-        write(clientList.sockets[i].socket, msgToSend, strlen(msgToSend));
-        printf("Message %s envoyé au client #%d\n", msgToSend, clientList.sockets[i].socket);
+      for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (clientList.sockets[i].socket != 0 && clientList.sockets[i].socket != socket) {
+          sprintf(message_receiver, "%s : %s", clientList.sockets[socket].username, buffer);
+          if (write(clientList.sockets[i].socket, message_receiver, strlen(message_receiver)) < 0) {
+              perror("erreur [Discussion] : impossible d'écrire sur le descripteur de fichier.\n");
+              close(clientList.sockets[i].socket);
+              removeClient(clientList.sockets[i].socket);
+          }
+        } else if (clientList.sockets[i].socket == socket) {
+          sprintf(message_sender, "Moi : %s\n", buffer);
+          if (write(clientList.sockets[i].socket, message_sender, strlen(message_sender)) < 0) {
+              perror("erreur [Discussion] : impossible d'écrire sur le descripteur de fichier.\n");
+              close(clientList.sockets[i].socket);
+              removeClient(clientList.sockets[i].socket);
+          }
+        }
       }
     }
   }
@@ -126,13 +134,13 @@ void *receptionChoix(void *currentClient_sock) {
     printf("\nChoix lu %s\n", buffer);
 
     if (strcmp(buffer, LISTE_CLIENTS) == 0) {
-      sendClientList(socket);
-      printf("Liste des clients envoyé au client #%d\n", socket);
+        sendClientList(socket);
+        printf("Liste des clients envoyé au client #%d\n", socket);
     } else if (strcmp(buffer, MSG_TOUS) == 0) {
-      memset(buffer, 0, sizeof(buffer));
-      strcpy(msg, "---- CHAT ----\n");
-      write(socket, msg, strlen(msg));
-      discussToAll(socket, buffer);
+        memset(buffer, 0, sizeof(buffer));
+        strcpy(msg, "---- CHAT ----\n");
+        write(socket, msg, strlen(msg));
+        discussToAll(socket, buffer); // Passer le socket émetteur
     } else if (strcmp(buffer, MSG_GROUPE) == 0) {
       printf("|i| Message à un groupe : en construction");
       strcpy(msg, "|i| Option encore indisponible\n");
@@ -171,7 +179,8 @@ main(int argc, char **argv) {
   int longueur_adresse_courante, /* longueur d'adresse courante d'un client */
     rc,  /* infos recuperees à la creation d'un thread */
     longueur,
-    client_count = 0; /* compteur de client */
+    client_count = 0, /* compteur de client */
+    port;
   sockaddr_in   adresse_locale,     /* structure d'adresse locale*/
     adresse_client_courant;   /* adresse client courant */
   hostent * ptr_hote;       /* les infos recuperees sur la machine hote */
@@ -195,9 +204,9 @@ main(int argc, char **argv) {
   adresse_locale.sin_family   = ptr_hote->h_addrtype;   /* ou AF_INET */
   adresse_locale.sin_addr.s_addr  = INADDR_ANY;       /* ou AF_INET */
 
-  // printf("Veuillez choisir un port d'attache : ");
-  // scanf("%d", &port);
-  adresse_locale.sin_port = htons(5000);
+  printf("Veuillez choisir un port d'attache : ");
+  scanf("%d", &port);
+  adresse_locale.sin_port = htons(port);
 
   printf("numero de port pour la connexion au serveur : %d \n", ntohs(adresse_locale.sin_port) /*ntohs(ptr_service->s_port)*/);
 
@@ -262,7 +271,7 @@ main(int argc, char **argv) {
     pthread_detach(currentClient_thread);
     //free(clientList);
     // Ne libérez pas nouveau_socket_descriptor ici car il est utilisé par le thread détaché.
-}
+  }
   close(socket_descriptor.socket);
   return 0;
 }
