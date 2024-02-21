@@ -177,7 +177,8 @@ int main(int argc, char **argv) {
             }
             while (selection == 2) {
                 printf("> ");
-                fgets(buffer, sizeof(buffer), stdin);
+                //fgets(buffer, sizeof(buffer), stdin);
+                scanf("%s", buffer);
                 if (strcmp(buffer, QUITTER) == 0) {
                     printf("|i| Vous avez quitté le chat\n");
                     selection = 7;
