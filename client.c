@@ -54,7 +54,8 @@ int main(int argc, char **argv) {
  
     int longueur,       /* longueur d'un buffer utilisé */
         selection, /* Permet la sélection dans le menu */
-        socket_dest; /* Socket du destinataire */
+        socket_dest, /* Socket du destinataire */
+        port;
     sockaddr_in adresse_locale;     /* adresse de socket local */
     hostent * ptr_host;       /* info sur une machine hote */
     servent * ptr_service;        /* info sur service */
@@ -100,7 +101,9 @@ int main(int argc, char **argv) {
     bcopy((char*)ptr_host->h_addr, (char*)&adresse_locale.sin_addr, ptr_host->h_length);
     adresse_locale.sin_family = AF_INET; /* ou ptr_host->h_addrtype; */
 
-    adresse_locale.sin_port = htons(5000);
+    printf("Veuillez choisir un port d'attache : ");
+    scanf("%d", &port);
+    adresse_locale.sin_port = htons(port);
 
     printf("numero de port pour la connexion au serveur : %d \n", ntohs(adresse_locale.sin_port));
 
@@ -158,13 +161,16 @@ int main(int argc, char **argv) {
             }
         } while (selection < 1 || selection > 7);
 
-        if ((write(socket_descriptor.socket, choix, strlen(choix))) < 0) {
+        // Envoi du message au serveur
+        if (write(socket_descriptor.socket, choix, strlen(choix)) < 0) {
             perror("erreur[Menu] : impossible d'envoyer un choix au serveur.");
             exit(1);
         }
-        
-        printf("Vous avez demandez : %s\n", choix);
-        if((longueur = read(socket_descriptor.socket, buffer, sizeof(buffer))) > 0) {
+
+        printf("Vous avez demandé : %s\n", choix);
+
+        // Lecture de la réponse du serveur
+        if ((longueur = read(socket_descriptor.socket, buffer, sizeof(buffer))) > 0) {
             write(1, buffer, longueur);
             if (selection == 2) {
                 printf("|i| Pour quitter le chat entrez : quitter\n");
@@ -176,11 +182,31 @@ int main(int argc, char **argv) {
                     printf("|i| Vous avez quitté le chat\n");
                     selection = 7;
                     break;
+                } else {
+                    // Envoi du message au serveur
+                    write(socket_descriptor.socket, buffer, strlen(buffer));
+
+                    // Lecture de la réponse du serveur
+                    if ((longueur = read(socket_descriptor.socket, buffer, sizeof(buffer))) > 0) {
+                        // Affichage de la réponse du serveur
+                        write(1, buffer, longueur);
+                    } else if (longueur == 0) {
+                        printf("La connexion avec le serveur a été fermée.\n");
+                        exit(1);
+                    } else {
+                        perror("Erreur lors de la lecture de la réponse du serveur.");
+                        exit(1);
+                    }
                 }
-                write(socket_descriptor.socket, buffer, strlen(buffer));
-                read(socket_descriptor.socket, buffer, strlen(buffer));
             }
+        } else if (longueur == 0) {
+            printf("La connexion avec le serveur a été fermée.\n");
+            exit(1);
+        } else {
+            perror("Erreur lors de la lecture de la réponse du serveur.");
+            exit(1);
         }
+
     } while(selection != 7);
 
     printf("\nfin de la reception.\n");
