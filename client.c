@@ -171,14 +171,16 @@ int main(int argc, char **argv) {
             }
             while (selection == 2) {
                 printf("> ");
-                scanf("%s", buffer);
+                fgets(buffer, sizeof(buffer), stdin);
                 if (strcmp(buffer, QUITTER) == 0) {
                     printf("|i| Vous avez quitté le chat\n");
                     selection = 7;
                     break;
+                } else {
+                    write(socket_descriptor.socket, buffer, strlen(buffer));
+                    buffer[strcspn(buffer, "\n")] = '\0';
+                    read(socket_descriptor.socket, buffer, strlen(buffer));
                 }
-                write(socket_descriptor.socket, buffer, strlen(buffer));
-                read(socket_descriptor.socket, buffer, strlen(buffer));
             }
         }
     } while(selection != 7);

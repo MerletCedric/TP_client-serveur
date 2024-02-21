@@ -82,8 +82,6 @@ void *discussToAll(int socket, char *buffer) {
   char msgToSend[1024+30];
   int longueur;
 
-  printf("socket %d\n", socket);
-
   while ((longueur = read(socket, buffer, sizeof(buffer))) > 0) {
     printf("Message lu : %s", buffer);
     if (strcmp(buffer, QUITTER)) {
