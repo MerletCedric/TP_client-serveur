@@ -183,11 +183,6 @@ int main(int argc, char **argv) {
                     selection = 7;
                     break;
                 } else {
-<<<<<<< HEAD
-                    write(socket_descriptor.socket, buffer, strlen(buffer));
-                    buffer[strcspn(buffer, "\n")] = '\0';
-                    read(socket_descriptor.socket, buffer, strlen(buffer));
-=======
                     // Envoi du message au serveur
                     write(socket_descriptor.socket, buffer, strlen(buffer));
 
@@ -202,7 +197,6 @@ int main(int argc, char **argv) {
                         perror("Erreur lors de la lecture de la réponse du serveur.");
                         exit(1);
                     }
->>>>>>> af9828dd0388bdcb19275e0a4f0c58cd4b376862
                 }
             }
         } else if (longueur == 0) {
